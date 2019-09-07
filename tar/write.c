@@ -730,7 +730,7 @@ append_archive(struct bsdtar *bsdtar, struct archive *a, struct archive *ina)
 		edit_mtime(bsdtar, in_entry);
 		if (bsdtar->verbose > 1) {
 			fputs("a ", stderr);
-			list_item_verbose(bsdtar, stderr, in_entry);
+			list_item_verbose(bsdtar, stderr, in_entry, bsdtar->verbose > 2);
 		} else if (bsdtar->verbose > 0) {
 			fputs("a ", stderr);
 			safe_fputs(archive_entry_pathname(in_entry), stderr);
@@ -956,7 +956,7 @@ write_hierarchy(struct bsdtar *bsdtar, struct archive *a, const char *path)
 		/* Display entry as we process it. */
 		if (bsdtar->verbose > 1) {
 			fputs("a ", stderr);
-			list_item_verbose(bsdtar, stderr, entry);
+			list_item_verbose(bsdtar, stderr, entry, bsdtar->verbose > 2);
 		} else if (bsdtar->verbose > 0) {
 			/* This format is required by SUSv2. */
 			fputs("a ", stderr);
@@ -1009,7 +1009,7 @@ write_entry(struct bsdtar *bsdtar, struct archive *a,
 	if (e != ARCHIVE_OK) {
 		if (bsdtar->verbose > 1) {
 			fputs("a ", stderr);
-			list_item_verbose(bsdtar, stderr, entry);
+			list_item_verbose(bsdtar, stderr, entry, bsdtar->verbose > 2);
 			lafe_warnc(0, ": %s", archive_error_string(a));
 		} else {
 			lafe_warnc(0, "%s: %s",

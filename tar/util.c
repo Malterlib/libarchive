@@ -40,6 +40,8 @@
 #define	iswprint isprint
 #endif
 
+#include <inttypes.h>
+
 #include "bsdtar.h"
 #include "lafe_explicit_bzero.h"
 #include "lafe_err.h"
@@ -615,7 +617,8 @@ passphrase_free(char *ppbuff)
  * and 'pax -l' is documented as using the same format as 'ls -l'.
  */
 void
-list_item_verbose(struct bsdtar *bsdtar, FILE *out, struct archive_entry *entry)
+list_item_verbose(struct bsdtar *bsdtar, FILE *out, struct archive_entry *entry
+				  , int exact_time)
 {
 	char			 tmp[100];
 	size_t			 w;
@@ -700,24 +703,28 @@ list_item_verbose(struct bsdtar *bsdtar, FILE *out, struct archive_entry *entry)
 #else
 #define	DAY_FMT  "%e"  /* Day number without leading zeros */
 #endif
-	if (age < -HALF_YEAR || age > HALF_YEAR)
-		fmt = bsdtar->day_first ? DAY_FMT " %b  %Y" : "%b " DAY_FMT "  %Y";
-	else
-		fmt = bsdtar->day_first ? DAY_FMT " %b %H:%M" : "%b " DAY_FMT " %H:%M";
-#if defined(HAVE_LOCALTIME_S)
-	ltime = localtime_s(&tmbuf, &tim) ? NULL : &tmbuf;
-#elif defined(HAVE_LOCALTIME_R)
-	ltime = localtime_r(&tim, &tmbuf);
-#else
-	ltime = localtime(&tim);
-#endif
-	if (ltime) {
-		sw = strftime(tmp, sizeof(tmp), fmt, ltime);
-		p = tmp;
+	if (exact_time) {
+		fprintf(out, " 0x%016" PRIx64 " 0x%08" PRIx32 " ", (uint64_t)archive_entry_mtime(entry), (uint32_t)archive_entry_mtime_nsec(entry));
+	} else {
+		if (age < -HALF_YEAR || age > HALF_YEAR)
+			fmt = bsdtar->day_first ? DAY_FMT " %b  %Y" : "%b " DAY_FMT "  %Y";
+		else
+			fmt = bsdtar->day_first ? DAY_FMT " %b %H:%M" : "%b " DAY_FMT " %H:%M";
+	#if defined(HAVE_LOCALTIME_S)
+		ltime = localtime_s(&tmbuf, &tim) ? NULL : &tmbuf;
+	#elif defined(HAVE_LOCALTIME_R)
+		ltime = localtime_r(&tim, &tmbuf);
+	#else
+		ltime = localtime(&tim);
+	#endif
+		if (ltime) {
+			sw = strftime(tmp, sizeof(tmp), fmt, ltime);
+			p = tmp;
+		}
+		if (!ltime || !sw)
+			p = "-- -- ----";
+		fprintf(out, " %s ", p);
 	}
-	if (!ltime || !sw)
-		p = "-- -- ----";
-	fprintf(out, " %s ", p);
 	safe_fputs(archive_entry_pathname(entry), out);
 
 	/* Extra information for links. */
